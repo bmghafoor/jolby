@@ -5,7 +5,7 @@
 const jsonschema = require("jsonschema");
 const express = require("express");
 
-const { BadRequestError } = require("../expressError");
+const { BadRequestError, ExpressError } = require("../expressError");
 const { ensureLoggedIn } = require("../middleware/auth");
 const Company = require("../models/company");
 
@@ -13,7 +13,6 @@ const companyNewSchema = require("../schemas/companyNew.json");
 const companyUpdateSchema = require("../schemas/companyUpdate.json");
 
 const router = new express.Router();
-
 
 /** POST / { company } =>  { company }
  *
@@ -28,7 +27,7 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, companyNewSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
@@ -52,7 +51,24 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
 
 router.get("/", async function (req, res, next) {
   try {
-    const companies = await Company.findAll();
+    const nameLike = req.query.nameLike || "";
+    const minEmployees = Number(req.query.minEmployees) || 0;
+    const maxEmployees = Number(req.query.maxEmployees) || Infinity;
+
+    if (minEmployees > maxEmployees) {
+      throw new ExpressError(
+        "Minimum employees cannot be greater than Maximum employees",
+        400
+      );
+    }
+    const companies = await Company.findAll(
+      nameLike,
+      minEmployees,
+      maxEmployees
+    );
+    if(companies.length === 0){
+      return res.json({msg:`No companies found, please adjust query strings`})
+    }
     return res.json({ companies });
   } catch (err) {
     return next(err);
@@ -91,7 +107,7 @@ router.patch("/:handle", ensureLoggedIn, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, companyUpdateSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
@@ -115,6 +131,5 @@ router.delete("/:handle", ensureLoggedIn, async function (req, res, next) {
     return next(err);
   }
 });
-
 
 module.exports = router;
