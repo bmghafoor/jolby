@@ -106,6 +106,24 @@ describe("GET /companies", function () {
         .set("authorization", `Bearer ${u1Token}`);
     expect(resp.statusCode).toEqual(500);
   });
+
+  test("works for finding company with nameLike", async() =>{
+    const resp = await request(app).get(`/companies/?nameLike=1`);
+    expect(resp.body).toEqual({
+      companies: [{
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img"
+      }]
+    })
+  })
+
+  test("works for when min employees is greater than max employees", async() =>{
+    const resp = await request(app).get(`/companies/?minEmployees=3&maxEmployees=2`);
+    expect(resp.statusCode).toEqual(400)
+  })
 });
 
 /************************************** GET /companies/:handle */
@@ -141,6 +159,7 @@ describe("GET /companies/:handle", function () {
     const resp = await request(app).get(`/companies/nope`);
     expect(resp.statusCode).toEqual(404);
   });
+
 });
 
 /************************************** PATCH /companies/:handle */
