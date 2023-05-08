@@ -158,6 +158,7 @@ class Company {
     const company = result.rows[0];
 
     if (!company) throw new NotFoundError(`No company: ${handle}`);
+    return ({deleted: `${handle}`})
   }
 }
 
